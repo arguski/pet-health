@@ -129,10 +129,11 @@ $('nav1').innerHTML=h;$('nav2').innerHTML=h;
 document.querySelectorAll('[data-v]').forEach(function(b){b.onclick=function(){view=b.dataset.v;draw()}})}
 function picker(){return '<div class="pets"><button class="pet'+(cur=='all'?' on':'')+'" data-p="all">全部</button>'+pets.map(function(p){return '<button class="pet'+(cur==p.id?' on':'')+'" data-p="'+p.id+'">'+p.name+'</button>'}).join('')+'</div>'}
 function head(t,btn){return '<div class="top"><h1>'+t+'</h1>'+(btn||'')+'</div><div style="margin-bottom:16px">'+picker()+'</div>'}
-function rmList(l){l=l.slice().sort(function(a,b){return days(a.due)-days(b.due)});
+function rmList(l){l=l.slice().sort(function(a,b){return (!a.iv-!b.iv)||days(a.due)-days(b.due)});
 if(!l.length)return '<div class="empty">還沒有提醒，按右上角新增</div>';
 return l.map(function(r){var d=days(r.due),k=d<0?'s-late':d<=14?'s-soon':'s-ok';
-return '<div class="rem"><div class="stamp '+k+'" style="border-color:currentColor"><b>'+Math.abs(d)+'</b><small>'+(d<0?'天前到期':d==0?'今天':'天後')+'</small></div><div class="t"><b>'+r.t+(cur=='all'?'（'+pet(r.pet).name+'）':'')+'</b><span>'+r.due+'・每 '+(r.iv==12?'年':r.iv+' 個月')+' 一次</span></div><div style="display:grid;gap:6px;text-align:center"><button class="btn g" data-done="'+r.id+'">已完成</button><a class="btn g" style="text-decoration:none;font-size:13px;padding:6px 12px" target="_blank" rel="noopener" href="'+gcal(r)+'">加入行事曆</a></div></div>'}).join('')}
+if(!r.iv)return '<div class="rem" style="opacity:.75"><div class="stamp" style="border-color:var(--line);color:var(--sub)"><b>—</b><small>不提醒</small></div><div class="t"><b>'+esc(r.t)+(cur=='all'?'（'+pet(r.pet).name+'）':'')+'</b><span>'+r.due+'・不提醒</span></div><div style="display:grid;gap:6px;text-align:center"><button class="btn g" style="font-size:13px;padding:6px 12px" data-edr="'+r.id+'">編輯</button><button class="btn g" style="font-size:13px;padding:6px 12px" data-delr="'+r.id+'">刪除</button></div></div>';
+return '<div class="rem"><div class="stamp '+k+'" style="border-color:currentColor"><b>'+Math.abs(d)+'</b><small>'+(d<0?'天前到期':d==0?'今天':'天後')+'</small></div><div class="t"><b>'+r.t+(cur=='all'?'（'+pet(r.pet).name+'）':'')+'</b><span>'+r.due+'・每 '+(r.iv==12?'年':r.iv+' 個月')+' 一次</span></div><div style="display:grid;gap:6px;text-align:center"><button class="btn g" data-done="'+r.id+'">已完成</button><a class="btn g" style="text-decoration:none;font-size:13px;padding:6px 12px" target="_blank" rel="noopener" href="'+gcal(r)+'">加入行事曆</a><div style="display:flex;gap:6px"><button class="btn g" style="font-size:12px;padding:4px 10px" data-edr="'+r.id+'">編輯</button><button class="btn g" style="font-size:12px;padding:4px 10px" data-delr="'+r.id+'">刪除</button></div></div></div>'}).join('')}
 function gcal(r){var d=r.due.replace(/-/g,''),p=r.due.split('-'),e=dstr(new Date(+p[0],+p[1]-1,+p[2]+1)).replace(/-/g,''),y=r.iv==12;return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('🐾 '+(r.pet?pet(r.pet).name+'：':'')+r.t)+'&dates='+d+'/'+e+(r.iv?'&recur='+encodeURIComponent('RRULE:FREQ='+(y?'YEARLY':'MONTHLY')+';INTERVAL='+(y?1:r.iv)):'')+'&details='+encodeURIComponent('愛犬健康管理系統提醒')}
 function vHome(){var l=mine(),k0=mkey(0),k1=mkey(1);
 var t0=sum(l.filter(function(e){return e.date.slice(0,7)==k0})),t1=sum(l.filter(function(e){return e.date.slice(0,7)==k1})),ty=sum(l.filter(function(e){return e.date.slice(0,7)>=mkey(5)}));
@@ -141,7 +142,7 @@ var cats={};l.filter(function(e){return e.date.slice(0,7)==k0}).forEach(function
 var tot=t0||1,acc=0,grad=[],leg='';
 Object.keys(cats).forEach(function(c){var p=cats[c]/tot*100;grad.push(C[c][1]+' '+acc+'% '+(acc+p)+'%');acc+=p;leg+='<div><i style="background:'+C[c][1]+'"></i>'+C[c][0]+'<span>'+money(cats[c])+'</span></div>'});
 if(!grad.length){grad=['var(--line) 0 100%'];leg='<div class="empty" style="padding:0">本月還沒有花費</div>'}
-var rl=rm.filter(function(r){return cur=='all'||r.pet==cur});
+var rl=rm.filter(function(r){return r.iv&&(cur=='all'||r.pet==cur)});
 return head('愛犬健康管理系統')+hint()+'<div class="grid g3 s"><div class="card stat"><small>本月花費</small><b>'+money(t0)+'</b><div class="d '+(df>0?'up':'dn')+'">'+(t1?(df>0?'比上月多 ':'比上月少 ')+Math.abs(df)+'%':'上月無資料')+'</div></div><div class="card stat"><small>近 6 個月合計</small><b>'+money(ty)+'</b><div class="d" style="color:var(--sub)">平均每月 '+money(ty/6)+'</div></div><div class="card stat"><small>待處理提醒</small><b>'+rl.filter(function(r){return days(r.due)<=14}).length+' 項</b><div class="d up">'+rl.filter(function(r){return days(r.due)<0}).length+' 項已逾期</div></div></div>'
 +''+freshCard('margin-top:14px')+stockCards('margin-top:14px')+'<div class="grid g2" style="margin-top:14px"><div class="card"><h2>本月花費分類</h2><div class="donut"><div class="ring" style="background:conic-gradient('+grad.join(',')+')"></div><div class="leg">'+leg+'</div></div></div>'
 +'<div class="card"><h2>近期提醒</h2>'+rmList(rl).split('<div class="rem">').slice(0,4).join('<div class="rem">')+'</div></div></div>'
@@ -194,10 +195,12 @@ function draw(){nav();$('main').innerHTML={home:vHome,cost:vCost,inc:vInc,rem:vR
 document.querySelectorAll('[data-p]').forEach(function(b){b.onclick=function(){cur=b.dataset.p;draw()}});
 document.querySelectorAll('[data-f]').forEach(function(b){b.onclick=function(){filt=b.dataset.f;draw()}});
 document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){var t=ex.filter(function(e){return e.id==b.dataset.del})[0];ex=ex.filter(function(e){return !(e.id==b.dataset.del||(t&&t.grp&&e.grp==t.grp))});save();draw()}});
-document.querySelectorAll('[data-done]').forEach(function(b){b.onclick=function(){var r=rm.filter(function(x){return x.id==b.dataset.done})[0],p=r.due.split('-'),d=new Date(+p[0],+p[1]-1+r.iv,+p[2]);r.due=dstr(d);save();draw()}});
+document.querySelectorAll('[data-edr]').forEach(function(b){b.onclick=function(){form('rm',rm.filter(function(x){return x.id==b.dataset.edr})[0])}});
+document.querySelectorAll('[data-delr]').forEach(function(b){b.onclick=function(){var r=rm.filter(function(x){return x.id==b.dataset.delr})[0];if(r&&confirm('刪除提醒「'+r.t+'」？')){rm=rm.filter(function(x){return x!==r});save();draw()}}});
+document.querySelectorAll('[data-done]').forEach(function(b){b.onclick=function(){var r=rm.filter(function(x){return x.id==b.dataset.done})[0];if(!r||!r.iv)return;var p=r.due.split('-'),d=new Date(+p[0],+p[1]-1+r.iv,+p[2]);r.due=dstr(d);save();draw()}});
 document.querySelectorAll('[data-ei]').forEach(function(b){b.onclick=function(){formInc(incs.filter(function(x){return x.id==b.dataset.ei})[0])}});
 document.querySelectorAll('[data-di]').forEach(function(b){b.onclick=function(){incs=incs.filter(function(x){return x.id!=b.dataset.di});save();draw()}});
-document.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){var v=b.dataset.r,Y=today.getFullYear(),M=today.getMonth();if(v=='all'){dfrom='';dto=''}else if(v=='m'){dfrom=dstr(new Date(Y,M,1));dto=dstr(new Date(Y,M+1,0))}else if(v=='3'){dfrom=dstr(new Date(Y,M-2,1));dto=dstr(new Date(Y,M+1,0))}else{dfrom=Y+'-01-01';dto=Y+'-12-31'}draw()}});
+document.querySelectorAll('[data-r]').forEach(function(b){b.onclick=function(){var v=b.dataset.r,Y=today.getFullYear(),M=today.getMonth();if(v=='all'){dfrom='';dto=''}else if(v=='m'){dfrom=dstr(new Date(Y,M,1));dto=dstr(new Date(Y,M+1,0))}else if(v=='3'){dfrom=dstr(new Date(Y,M-2,1));dto=dstr(new Date(Y,M+1,0))}else{var yy=v.slice(1);dfrom=yy+'-01-01';dto=yy+'-12-31'}draw()}});
 document.querySelectorAll('[data-sort]').forEach(function(b){b.onclick=function(){sortAsc=!sortAsc;draw()}});
 if($('rgf')){$('rgf').onchange=function(){dfrom=$('rgf').value;draw()};$('rgt').onchange=function(){dto=$('rgt').value;draw()}}
 document.querySelectorAll('[data-bk]').forEach(function(b){b.onclick=function(){var a=b.dataset.bk;if(a=='export')exportData();else if(a=='import')importFile();else if(a=='reload'){if(window.Cloud&&Cloud.reload)Cloud.reload();else toast('尚未連線')}else if(a=='out'){if(window.Cloud&&Cloud.out)Cloud.out()}}});
@@ -220,8 +223,8 @@ if(ev){$('xd').value=ev.date;$('xa').value=ev.amt;$('xn').value=ev.note||'';$('x
 $('fx').onclick=function(){$('dlg').close()};
 $('fs').onclick=function(){var a=+$('xa').value,d=$('xd').value;if(!a||!d){$('xa').focus();return}var o=ev||{id:nid()};if(!ev)incs.push(o);o.date=d;o.amt=a;o.note=$('xn').value.trim();o.src=$('xs').value.trim();save();$('dlg').close();draw()};
 $('dlg').showModal()}
-function rangeKey(){var Y=today.getFullYear(),M=today.getMonth();if(!dfrom&&!dto)return 'all';if(dfrom==dstr(new Date(Y,M,1))&&dto==dstr(new Date(Y,M+1,0)))return 'm';if(dfrom==dstr(new Date(Y,M-2,1))&&dto==dstr(new Date(Y,M+1,0)))return '3';if(dfrom==Y+'-01-01'&&dto==Y+'-12-31')return 'y';return ''}
-function rangeUI(){var pr=[['all','全部期間'],['m','本月'],['3','近 3 個月'],['y',today.getFullYear()+' 年']];
+function rangeKey(){var Y=today.getFullYear(),M=today.getMonth();if(!dfrom&&!dto)return 'all';if(dfrom==dstr(new Date(Y,M,1))&&dto==dstr(new Date(Y,M+1,0)))return 'm';if(dfrom==dstr(new Date(Y,M-2,1))&&dto==dstr(new Date(Y,M+1,0)))return '3';if(dfrom&&dfrom.slice(5)=='01-01'&&dto==dfrom.slice(0,4)+'-12-31')return 'y'+dfrom.slice(0,4);return ''}
+function rangeUI(){var pr=[['all','全部期間'],['m','本月'],['3','近 3 個月'],];var ys={};ys[today.getFullYear()]=1;ex.forEach(function(e){ys[e.date.slice(0,4)]=1});Object.keys(ys).sort().reverse().forEach(function(y){pr.push(['y'+y,y+' 年'])});
 return '<div class="chips">'+pr.map(function(p){return '<button class="chip'+(rangeKey()==p[0]?' on':'')+'" data-r="'+p[0]+'">'+p[1]+'</button>'}).join('')+'<button class="chip" data-sort="1">日期：'+(sortAsc?'舊→新':'新→舊')+'</button></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><label class="f" style="margin:0">起<input type="date" id="rgf" value="'+dfrom+'"></label><label class="f" style="margin:0">迄<input type="date" id="rgt" value="'+dto+'"></label></div>'}
 function pn(i){var p=pet(i);return p?p.name:'共同'}
 function age(b){var p=b.split('-'),m=(today.getFullYear()-+p[0])*12+today.getMonth()-(+p[1]-1)-(today.getDate()<+p[2]?1:0);return m<0?'':(m>=12?Math.floor(m/12)+' 歲 ':'')+(m%12)+' 個月'}
@@ -236,16 +239,16 @@ $('fx').onclick=function(){$('dlg').close()};
 $('fs').onclick=function(){var nm=$('pn').value.trim();if(!nm){$('pn').focus();return}p.name=nm;p.sp=$('ps').value.trim();p.bd=$('pb').value;var w=+$('pw').value||0;p.w=w;p.kg=w?w+' kg':'';save();$('dlg').close();draw()};
 $('dlg').showModal()}
 function clist(){var c=[];vs.forEach(function(v){if(c.indexOf(v.clinic)<0)c.push(v.clinic)});return c.map(function(x){return '<option value="'+esc(x)+'">'}).join('')}
-function form(t){var isE=t=='ex';
-$('dlgBody').innerHTML='<h2>'+(isE?'記一筆花費':'新增提醒')+'</h2>'
+function form(t,ev){var isE=t=='ex';
+$('dlgBody').innerHTML='<h2>'+(isE?'記一筆花費':ev?'編輯提醒':'新增提醒')+'</h2>'
 +(isE?pchk():'<label class="f">寵物<select id="fp">'+popts()+'</select></label>')
 +(isE?'<label class="f">分類<select id="fc">'+opts(C)+'</select></label><label class="f" id="fclw" style="display:none">獸醫院（會同步記入看診紀錄）<input id="fcl" list="cl2" placeholder="例如 愛心動物醫院"><datalist id="cl2">'+clist()+'</datalist></label><label class="f">整筆金額（元）<input id="fa" type="number" inputmode="numeric" min="0" placeholder="例如 630"></label>'+splitUI()+'<label class="f">日期<input id="fd" type="date" value="'+dstr(today)+'"></label><label class="f">備註<input id="fn" placeholder="例如 成犬飼料 7kg"></label>'
-:'<label class="f">項目<input id="fn" placeholder="例如 狂犬病疫苗"></label><label class="f">到期日<input id="fd" type="date" value="'+off(30)+'"></label><label class="f">重複週期<select id="fi"><option value="1">每月</option><option value="3">每 3 個月</option><option value="12" selected>每年</option></select></label>')
+:'<label class="f">項目<input id="fn" placeholder="例如 狂犬病疫苗"></label><label class="f">到期日<input id="fd" type="date" value="'+off(30)+'"></label><label class="f">重複週期<select id="fi"><option value="1">每月</option><option value="2">每 2 個月</option><option value="3">每 3 個月</option><option value="6">每 6 個月</option><option value="12" selected>每年</option><option value="0">不提醒</option></select></label>')
 +'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn g" id="fx">取消</button><button class="btn" id="fs">儲存</button></div>';
-$('fx').onclick=function(){$('dlg').close()};if(isE)wire();
+$('fx').onclick=function(){$('dlg').close()};if(isE)wire();else if(ev){$('fp').value=ev.pet;$('fn').value=ev.t;$('fd').value=ev.due;$('fi').value=String(ev.iv)}
 $('fs').onclick=function(){var p=isE?'':$('fp').value,d=$('fd').value,n=$('fn').value.trim();
 if(isE){var a=+$('fa').value,c1=$('fc').value,shr=['food','can','deworm','vet','vaccine'].indexOf(c1)<0,sp=shr?[{p:'all',v:a}]:split();if(!a||!d){$('fa').focus();return}if(!sp.length){$('sh').textContent='請至少勾選一隻寵物';return}var cat0=$('fc').value,cl=$('fcl').value.trim(),isV=cat0=='vet'||cat0=='vaccine';if(isV&&!cl){$('fcl').focus();return}var g=nid(),u=$('sm').value=='u'&&$('fc').value=='deworm'?{pk:+$('ut').value||1,us:+$('ue').value||1}:{};sp.forEach(function(s){var r={id:nid(),grp:g,pet:s.p,date:d,cat:$('fc').value,amt:s.v,note:n+(sp.length>1?'（'+sp.length+' 隻分攤）':'')};if(isV){var vv={id:nid(),pet:s.p,date:d,clinic:cl,w:0,t:0,note:n,rec:'',cost:s.v,cat:cat0};vs.push(vv);r.vid=vv.id;r.note=cl+'・'+(n||'看診')+(sp.length>1?'（'+sp.length+' 隻分攤）':'')}if(u.pk){r.pk=u.pk;r.us=u.us}ex.push(r)})}
-else{if(!n||!d){$('fn').focus();return}rm.push({id:nid(),pet:p,t:n,c:'other',due:d,iv:+$('fi').value})}
+else{if(!n||!d){$('fn').focus();return}if(ev){ev.pet=p;ev.t=n;ev.due=d;ev.iv=+$('fi').value}else rm.push({id:nid(),pet:p,t:n,c:'other',due:d,iv:+$('fi').value})}
 save();$('dlg').close();draw()};
 $('dlg').showModal()}
 function srcList(){var u=[];incs.forEach(function(x){if(x.src&&u.indexOf(x.src)<0)u.push(x.src)});return '<datalist id="xl">'+u.map(function(x){return '<option value="'+esc(x)+'">'}).join('')+'</datalist>'}
